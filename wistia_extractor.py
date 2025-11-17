@@ -107,23 +107,27 @@ def download_video_with_ytdlp(video_url: str, video_id: str) -> Optional[str]:
         }
         
         # Try to get cookies from browser for Vimeo videos (helps with private/unlisted videos)
+        # Note: Chrome cookie access may fail if Chrome is running or due to permissions
+        cookies_enabled = False
         if 'vimeo.com' in video_url.lower():
-            # Try Chrome first (most common), fallback to Edge, then Firefox
-            # yt-dlp will handle errors if cookies aren't available
-            try:
-                ydl_opts['cookiesfrombrowser'] = ('chrome',)
-                print("Attempting to use cookies from Chrome browser...")
-            except:
+            browsers_to_try = [
+                ('edge', 'Edge'),
+                ('firefox', 'Firefox'),
+                ('chrome', 'Chrome'),  # Try Chrome last as it often has permission issues
+            ]
+            
+            for browser_key, browser_name in browsers_to_try:
                 try:
-                    ydl_opts['cookiesfrombrowser'] = ('edge',)
-                    print("Attempting to use cookies from Edge browser...")
-                except:
-                    try:
-                        ydl_opts['cookiesfrombrowser'] = ('firefox',)
-                        print("Attempting to use cookies from Firefox browser...")
-                    except:
-                        # Continue without cookies if none are available
-                        pass
+                    ydl_opts['cookiesfrombrowser'] = (browser_key,)
+                    print(f"Attempting to use cookies from {browser_name} browser...")
+                    cookies_enabled = True
+                    break
+                except Exception as e:
+                    # If it's a cookie database error, try next browser
+                    if 'cookie' in str(e).lower() or 'database' in str(e).lower():
+                        continue
+                    # Otherwise, skip cookies
+                    break
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # Download the video
@@ -157,23 +161,69 @@ def download_video_with_ytdlp(video_url: str, video_id: str) -> Optional[str]:
         
     except yt_dlp.utils.DownloadError as e:
         error_msg = str(e)
+        
+        # Handle cookie database errors
+        if 'cookie database' in error_msg.lower() or 'could not copy' in error_msg.lower():
+            print(f"\nNote: Could not access browser cookies (browser may be running or permission issue).")
+            print(f"Retrying without cookies...")
+            # Retry without cookies
+            ydl_opts_no_cookies = ydl_opts.copy()
+            ydl_opts_no_cookies.pop('cookiesfrombrowser', None)
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts_no_cookies) as ydl:
+                    ydl.download([video_url])
+                    # Check for downloaded file
+                    if downloaded_filename[0] and os.path.exists(downloaded_filename[0]):
+                        print(f"\nVideo downloaded successfully: {downloaded_filename[0]}")
+                        return downloaded_filename[0]
+                    # Try to find file by pattern
+                    temp_dir = tempfile.gettempdir()
+                    pattern_base = os.path.join(temp_dir, f"video_{video_id}")
+                    for ext in ['.mp4', '.webm', '.mkv', '.m4a', '.mov']:
+                        potential_file = pattern_base + ext
+                        if os.path.exists(potential_file):
+                            print(f"\nVideo downloaded successfully: {potential_file}")
+                            return potential_file
+            except Exception as retry_error:
+                error_msg = str(retry_error)
+        
         if 'login' in error_msg.lower() or 'authentication' in error_msg.lower() or 'cookies' in error_msg.lower():
             print(f"\nError: This video requires authentication/login.")
             print(f"\nFor Vimeo videos that require login, you have a few options:")
-            print(f"1. Use yt-dlp with cookies from your browser:")
-            print(f"   yt-dlp --cookies-from-browser chrome {video_url}")
-            print(f"2. Export cookies from your browser and use:")
-            print(f"   yt-dlp --cookies cookies.txt {video_url}")
-            print(f"\nAlternatively, if this is a private/unlisted video, make sure you're logged in")
-            print(f"to Vimeo in your browser and export the cookies.")
+            print(f"1. Close your browser and try again (to allow cookie access)")
+            print(f"2. Use yt-dlp directly with cookies:")
+            print(f"   yt-dlp --cookies-from-browser edge {video_url}")
+            print(f"3. Export cookies from your browser manually")
+            print(f"\nIf this is a private/unlisted video, make sure you're logged into Vimeo")
+            print(f"in your browser (Edge or Firefox work better than Chrome on Windows).")
             return None
         else:
             print(f"\nError downloading video with yt-dlp: {e}")
             return None
     except Exception as e:
+        error_str = str(e)
+        # Handle cookie database errors in general exception handler too
+        if 'cookie database' in error_str.lower() or 'could not copy' in error_str.lower():
+            print(f"\nNote: Could not access browser cookies. Trying without cookies...")
+            # Retry without cookies
+            ydl_opts_no_cookies = ydl_opts.copy()
+            ydl_opts_no_cookies.pop('cookiesfrombrowser', None)
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts_no_cookies) as ydl:
+                    ydl.download([video_url])
+                    temp_dir = tempfile.gettempdir()
+                    pattern_base = os.path.join(temp_dir, f"video_{video_id}")
+                    for ext in ['.mp4', '.webm', '.mkv', '.m4a', '.mov']:
+                        potential_file = pattern_base + ext
+                        if os.path.exists(potential_file):
+                            print(f"\nVideo downloaded successfully: {potential_file}")
+                            return potential_file
+            except:
+                pass
+        
         print(f"\nError downloading video with yt-dlp: {e}")
         # Don't print full traceback for known errors
-        if 'login' not in str(e).lower() and 'authentication' not in str(e).lower():
+        if 'login' not in error_str.lower() and 'authentication' not in error_str.lower() and 'cookie' not in error_str.lower():
             import traceback
             traceback.print_exc()
         return None
