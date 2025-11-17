@@ -6,11 +6,15 @@ Handles audio transcription using AssemblyAI API.
 import os
 import assemblyai as aai
 from typing import Optional
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 def setup_assemblyai() -> bool:
     """
-    Set up AssemblyAI API key from environment variable.
+    Set up AssemblyAI API key from environment variable or .env file.
     
     Returns:
         True if API key is set successfully, False otherwise
@@ -22,6 +26,7 @@ def setup_assemblyai() -> bool:
         print("Please set it using:")
         print("  Windows (PowerShell): $env:ASSEMBLYAI_API_KEY='your_key_here'")
         print("  macOS/Linux: export ASSEMBLYAI_API_KEY='your_key_here'")
+        print("  Or create a .env file with: ASSEMBLYAI_API_KEY=your_key_here")
         return False
     
     aai.settings.api_key = api_key
