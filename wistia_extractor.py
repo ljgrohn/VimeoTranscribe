@@ -97,6 +97,7 @@ def download_video_with_ytdlp(video_url: str, video_id: str) -> Optional[str]:
                 downloaded_filename[0] = d.get('filename')
         
         # Configure yt-dlp options
+        # Try to use cookies from browser for authenticated videos (Vimeo, etc.)
         ydl_opts = {
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
             'outtmpl': video_path_template,
@@ -104,6 +105,17 @@ def download_video_with_ytdlp(video_url: str, video_id: str) -> Optional[str]:
             'no_warnings': False,
             'progress_hooks': [progress_hook],
         }
+        
+        # Try to get cookies from browser for Vimeo videos (helps with private/unlisted videos)
+        if 'vimeo.com' in video_url.lower():
+            # Try common browsers - yt-dlp will use the first available
+            # This helps if you're logged into Vimeo in your browser
+            try:
+                ydl_opts['cookiesfrombrowser'] = ('chrome', 'edge', 'firefox', 'opera', 'brave')
+                print("Attempting to use browser cookies for authentication...")
+            except:
+                # If cookiesfrombrowser isn't supported, continue without it
+                pass
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # Download the video
@@ -135,10 +147,27 @@ def download_video_with_ytdlp(video_url: str, video_id: str) -> Optional[str]:
             
             return None
         
+    except yt_dlp.utils.DownloadError as e:
+        error_msg = str(e)
+        if 'login' in error_msg.lower() or 'authentication' in error_msg.lower() or 'cookies' in error_msg.lower():
+            print(f"\nError: This video requires authentication/login.")
+            print(f"\nFor Vimeo videos that require login, you have a few options:")
+            print(f"1. Use yt-dlp with cookies from your browser:")
+            print(f"   yt-dlp --cookies-from-browser chrome {video_url}")
+            print(f"2. Export cookies from your browser and use:")
+            print(f"   yt-dlp --cookies cookies.txt {video_url}")
+            print(f"\nAlternatively, if this is a private/unlisted video, make sure you're logged in")
+            print(f"to Vimeo in your browser and export the cookies.")
+            return None
+        else:
+            print(f"\nError downloading video with yt-dlp: {e}")
+            return None
     except Exception as e:
         print(f"\nError downloading video with yt-dlp: {e}")
-        import traceback
-        traceback.print_exc()
+        # Don't print full traceback for known errors
+        if 'login' not in str(e).lower() and 'authentication' not in str(e).lower():
+            import traceback
+            traceback.print_exc()
         return None
 
 
