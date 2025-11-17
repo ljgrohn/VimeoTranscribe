@@ -43,8 +43,11 @@ wistia_transcriber_env/
 *.mp3
 *.wav
 *.m4a
-video_*
-audio_*
+video_*.mp4
+audio_*.wav
+audio_*.mp3
+wistia_*.mp4
+wistia_*_audio.wav
 transcript_*.txt
 
 # OS
