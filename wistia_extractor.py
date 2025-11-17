@@ -108,14 +108,22 @@ def download_video_with_ytdlp(video_url: str, video_id: str) -> Optional[str]:
         
         # Try to get cookies from browser for Vimeo videos (helps with private/unlisted videos)
         if 'vimeo.com' in video_url.lower():
-            # Try common browsers - yt-dlp will use the first available
-            # This helps if you're logged into Vimeo in your browser
+            # Try Chrome first (most common), fallback to Edge, then Firefox
+            # yt-dlp will handle errors if cookies aren't available
             try:
-                ydl_opts['cookiesfrombrowser'] = ('chrome', 'edge', 'firefox', 'opera', 'brave')
-                print("Attempting to use browser cookies for authentication...")
+                ydl_opts['cookiesfrombrowser'] = ('chrome',)
+                print("Attempting to use cookies from Chrome browser...")
             except:
-                # If cookiesfrombrowser isn't supported, continue without it
-                pass
+                try:
+                    ydl_opts['cookiesfrombrowser'] = ('edge',)
+                    print("Attempting to use cookies from Edge browser...")
+                except:
+                    try:
+                        ydl_opts['cookiesfrombrowser'] = ('firefox',)
+                        print("Attempting to use cookies from Firefox browser...")
+                    except:
+                        # Continue without cookies if none are available
+                        pass
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # Download the video
