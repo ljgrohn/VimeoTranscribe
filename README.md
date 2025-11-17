@@ -1,10 +1,11 @@
-# Wistia Video Transcription Tool
+# Video Transcription Tool
 
-A Python CLI tool that transcribes Wistia videos using AssemblyAI. Simply provide a Wistia URL or video ID, and get a transcript saved to a text file.
+A Python CLI tool that transcribes videos from Vimeo, Wistia, and other platforms using AssemblyAI. Simply provide a video URL or video ID, and get a transcript saved to a text file.
 
 ## Features
 
-- Extract video from Wistia URLs or video IDs
+- Extract video from Vimeo, Wistia URLs or video IDs
+- Supports multiple video platforms via yt-dlp
 - Automatic audio extraction from video files
 - High-quality transcription using AssemblyAI
 - Interactive command-line interface
@@ -66,16 +67,17 @@ python main.py
 ```
 
 The interactive CLI will prompt you to:
-1. Enter a Wistia URL or video ID
+1. Enter a video URL or video ID (Vimeo, Wistia, etc.)
 2. Process the video (download → extract audio → transcribe)
 3. Display the transcript
 4. Automatically save the transcript to a file
 
 ### Example Inputs
 
+- Vimeo URL: `https://vimeo.com/1045420475/ecd784e145`
+- Vimeo URL: `https://vimeo.com/1045420475`
 - Wistia URL: `https://support.wistia.com/medias/26sk4lmiix`
-- Video ID: `26sk4lmiix`
-- Short URL: `https://wi.st/26sk4lmiix`
+- Video ID: `26sk4lmiix` (for Wistia)
 
 ### Output
 
@@ -86,7 +88,7 @@ The transcript will be saved as `transcript_<video_id>.txt` in the current direc
 ```
 VimeoTranscribe/
 ├── main.py                 # Main CLI entry point
-├── wistia_extractor.py     # Wistia video download logic
+├── wistia_extractor.py     # Video download logic (Vimeo/Wistia via yt-dlp)
 ├── audio_processor.py      # Audio extraction with ffmpeg
 ├── transcriber.py          # AssemblyAI integration
 ├── requirements.txt        # Python dependencies
@@ -97,7 +99,7 @@ VimeoTranscribe/
 
 ## How It Works
 
-1. **Video Extraction:** Parses the Wistia URL/ID and fetches the video file from Wistia's API
+1. **Video Extraction:** Parses the video URL/ID and downloads the video file using yt-dlp (supports Vimeo, Wistia, and many other platforms)
 2. **Audio Processing:** Extracts audio from the video using ffmpeg
 3. **Transcription:** Uploads audio to AssemblyAI and retrieves the transcript
 4. **Output:** Saves the transcript to a text file

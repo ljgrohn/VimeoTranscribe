@@ -34,16 +34,17 @@ def save_transcript(transcript: str, video_id: str) -> str:
 def main():
     """Main entry point for the CLI application."""
     print("=" * 60)
-    print("Wistia Video Transcription Tool")
+    print("Video Transcription Tool")
+    print("Supports Vimeo, Wistia, and other platforms")
     print("=" * 60)
     print()
     
-    # Get Wistia URL or video ID from user
+    # Get video URL or video ID from user
     while True:
-        video_input = input("Enter Wistia URL or video ID: ").strip()
+        video_input = input("Enter video URL or video ID: ").strip()
         
         if not video_input:
-            print("Please enter a valid Wistia URL or video ID.")
+            print("Please enter a valid video URL or video ID.")
             continue
         
         break
